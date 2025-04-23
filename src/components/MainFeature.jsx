@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Delete, Percent, Divide, X, Minus, Plus, Equal } from 'lucide-react';
+import { createCalculationAsync } from '../store/calculationSlice';
 
-const MainFeature = ({ addToHistory }) => {
+const MainFeature = () => {
+  const dispatch = useDispatch();
   const [displayValue, setDisplayValue] = useState('0');
   const [currentValue, setCurrentValue] = useState(null);
   const [storedValue, setStoredValue] = useState(null);
@@ -77,6 +80,16 @@ const MainFeature = ({ addToHistory }) => {
     setAnimateDisplay(true);
   };
 
+  // Add calculation to history
+  const addToHistory = (expression, result, operationType) => {
+    dispatch(createCalculationAsync({
+      name: `${expression} = ${result}`,
+      expression,
+      result,
+      operationType
+    }));
+  };
+
   // Handle operation
   const performOperation = (nextOperator) => {
     const inputValue = parseFloat(displayValue);
@@ -91,7 +104,7 @@ const MainFeature = ({ addToHistory }) => {
       // Add to history when chaining operations
       if (storedValue !== null) {
         const expression = `${storedValue} ${getOperatorSymbol(operator)} ${inputValue}`;
-        addToHistory(expression, result);
+        addToHistory(expression, result, operator);
       }
     }
     
@@ -150,7 +163,7 @@ const MainFeature = ({ addToHistory }) => {
     setAnimateDisplay(true);
     
     // Add to history
-    addToHistory(expression, result);
+    addToHistory(expression, result, operator);
   };
 
   // Handle keyboard input

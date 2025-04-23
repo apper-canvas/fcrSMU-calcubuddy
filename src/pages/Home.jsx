@@ -1,37 +1,24 @@
 import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, Info } from 'lucide-react';
+import { History, Info, Trash } from 'lucide-react';
+import { fetchCalculationsAsync, deleteCalculationAsync } from '../store/calculationSlice';
 import MainFeature from '../components/MainFeature';
+import { format } from 'date-fns';
 
 const Home = () => {
+  const dispatch = useDispatch();
+  const { items: calculations, loading } = useSelector((state) => state.calculations);
   const [showHistory, setShowHistory] = useState(false);
-  const [calculations, setCalculations] = useState([]);
   const [showInfo, setShowInfo] = useState(false);
 
-  // Add calculation to history
-  const addToHistory = (expression, result) => {
-    const newCalculation = {
-      id: Date.now(),
-      expression,
-      result,
-      timestamp: new Date()
-    };
-    
-    setCalculations(prev => [newCalculation, ...prev].slice(0, 10));
+  useEffect(() => {
+    dispatch(fetchCalculationsAsync());
+  }, [dispatch]);
+
+  const handleDelete = (calculationId) => {
+    dispatch(deleteCalculationAsync(calculationId));
   };
-
-  // Load calculations from localStorage on mount
-  useEffect(() => {
-    const savedCalculations = localStorage.getItem('calculationHistory');
-    if (savedCalculations) {
-      setCalculations(JSON.parse(savedCalculations));
-    }
-  }, []);
-
-  // Save calculations to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('calculationHistory', JSON.stringify(calculations));
-  }, [calculations]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -43,7 +30,7 @@ const Home = () => {
           transition={{ duration: 0.5 }}
           className="flex-1"
         >
-          <MainFeature addToHistory={addToHistory} />
+          <MainFeature />
         </motion.div>
         
         {/* History Panel (Slide in from right on mobile, fixed on desktop) */}
@@ -66,12 +53,16 @@ const Home = () => {
                 </button>
               </div>
               
-              {calculations.length > 0 ? (
+              {loading ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                </div>
+              ) : calculations.length > 0 ? (
                 <div className="space-y-3 max-h-[70vh] overflow-y-auto scrollbar-hide">
                   {calculations.map(calc => (
                     <div 
-                      key={calc.id}
-                      className="p-3 bg-surface-50 dark:bg-surface-700 rounded-xl"
+                      key={calc.Id}
+                      className="p-3 bg-surface-50 dark:bg-surface-700 rounded-xl relative group"
                     >
                       <div className="text-sm text-surface-500 dark:text-surface-400">
                         {calc.expression}
@@ -80,8 +71,16 @@ const Home = () => {
                         = {calc.result}
                       </div>
                       <div className="text-xs text-surface-400 dark:text-surface-500 mt-1">
-                        {new Date(calc.timestamp).toLocaleTimeString()}
+                        {calc.timestamp ? format(new Date(calc.timestamp), 'MMM d, yyyy HH:mm') : 'No date'}
                       </div>
+                      
+                      <button 
+                        onClick={() => handleDelete(calc.Id)}
+                        className="absolute top-2 right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-100 text-red-500 transition-opacity"
+                        aria-label="Delete calculation"
+                      >
+                        <Trash size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>
